@@ -1,0 +1,21 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Models
+*.pth
+*.pt
+*.onnx
+src/models/*.pth
+
+# Data
+data/
+!data/.gitkeep
+
+# Environment
+.env
+.venv/
+env/
+venv/
