@@ -66,24 +66,78 @@ def evaluate_ae():
     defective_errors = np.array(defective_errors)
     
     print("-" * 30)
-    print("ANOMALY DETECTION REPORT")
+    print("ANOMALY DETECTION REPORT (Refined)")
     print("-" * 30)
     print(f"Normal Samples:    {len(normal_errors)}")
     print(f"Defective Samples: {len(defective_errors)}")
     print(f"Normal MSE (Avg):  {normal_errors.mean():.6f} +/- {normal_errors.std():.6f}")
     print(f"Defect MSE (Avg):  {defective_errors.mean():.6f} +/- {defective_errors.std():.6f}")
     
-    # Separation Metric
-    # Simple Threshold?
+    # Adaptive Threshold
+    # Mean + 2*Std of Normal Data
     threshold = normal_errors.mean() + 2 * normal_errors.std()
-    print(f"Suggested Threshold (Mean+2Std): {threshold:.6f}")
+    print(f"\nAdaptive Threshold (Mean + 2*Std): {threshold:.6f}")
     
     detected = np.sum(defective_errors > threshold)
     false_alarms = np.sum(normal_errors > threshold)
     
-    print(f"Defects Detected:  {detected} ({detected/len(defective_errors)*100:.1f}%)")
-    print(f"False Alarms:      {false_alarms} ({false_alarms/len(normal_errors)*100:.1f}%)")
+    # Binary Classification Metrics
+    tp = detected
+    fp = false_alarms
+    tn = len(normal_errors) - fp
+    fn = len(defective_errors) - tp
+    
+    accuracy = (tp + tn) / (len(normal_errors) + len(defective_errors))
+    
+    print(f"Defects Detected (TP): {detected} ({detected/len(defective_errors)*100:.1f}%)")
+    print(f"False Alarms (FP):     {false_alarms} ({false_alarms/len(normal_errors)*100:.1f}%)")
+    print(f"Overall Accuracy:      {accuracy*100:.2f}%")
     print("-" * 30)
+    
+    # Save Heatmap Examples (Top 3 Defect, Top 3 Normal)
+    print("Generating Heatmaps...")
+    # (Re-run a small batch or just grabbing from last batch would be efficient, but let's keep it simple)
+    # We'll just visualize the last batch processed in the loop for demonstration
+    
+    # Normalize error map for visualization
+    def save_heatmap(img_tensor, recon_tensor, filename):
+        mse = (img_tensor - recon_tensor) ** 2
+        mse = mse.mean(dim=0).cpu().numpy() # (H, W)
+        
+        plt.figure(figsize=(10, 3))
+        plt.subplot(1, 3, 1)
+        plt.imshow(img_tensor.permute(1, 2, 0).cpu().numpy())
+        plt.title("Original")
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 2)
+        plt.imshow(recon_tensor.permute(1, 2, 0).cpu().detach().numpy())
+        plt.title("Reconstructed")
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 3)
+        plt.imshow(mse, cmap='hot')
+        plt.title("Error Heatmap")
+        plt.axis('off')
+        
+        plt.savefig(filename)
+        plt.close()
+
+    # Visualize last batch items
+    if len(images) > 0:
+        # Save a defective example if present (Prob > 0)
+        def_indices = (targets > 0).nonzero(as_tuple=True)[0]
+        if len(def_indices) > 0:
+            idx = def_indices[0]
+            save_heatmap(images[idx], recons[idx], 'src/autoencoder/heatmap_defective.png')
+            print("Saved src/autoencoder/heatmap_defective.png")
+            
+        # Save a normal example
+        norm_indices = (targets == 0).nonzero(as_tuple=True)[0]
+        if len(norm_indices) > 0:
+            idx = norm_indices[0]
+            save_heatmap(images[idx], recons[idx], 'src/autoencoder/heatmap_normal.png')
+            print("Saved src/autoencoder/heatmap_normal.png")
 
 if __name__ == '__main__':
     evaluate_ae()

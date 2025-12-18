@@ -61,9 +61,14 @@ def train_ae():
             images = images.to(DEVICE)
             targets = targets.to(DEVICE)
             
+            # Denoising: Add noise to input, target remains clean
+            noise_factor = 0.1
+            noisy_images = images + noise_factor * torch.randn_like(images)
+            noisy_images = torch.clamp(noisy_images, 0., 1.)
+            
             optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, targets)
+            outputs = model(noisy_images) # Input is noisy
+            loss = criterion(outputs, targets) # Target is clean
             loss.backward()
             optimizer.step()
             
