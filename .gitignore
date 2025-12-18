@@ -7,8 +7,8 @@
 src/models/*.pth
 
 # Data
-data/
-!data/.gitkeep
+/data/
+!/data/.gitkeep
 
 # --- Standard Python ---
 # Byte-compiled / optimized / DLL files
